@@ -20,6 +20,16 @@ from sklearn.multioutput import MultiOutputClassifier
 
 def load_data(database_filepath):
     
+    """
+    This function loads the data from the database located on the given filepath.
+    Input:
+    - database_filepath(String): location of database file
+    Output:
+    - X: message data
+    - y: data containing all the category columns for message data
+    - category_names: list containing all category names
+    """
+    
     # load data from database
     engine = create_engine('sqlite:///{}'.format(database_filepath))
     df = pd.read_sql_table("MessageTable", engine)
@@ -30,6 +40,13 @@ def load_data(database_filepath):
     return X, y, category_names
 
 def tokenize(text):
+    """
+    This function tokenizes the text.
+    Input:
+    - text(String): text which has to be tokenized.
+    Output:
+    - clean_tokens: list of tokens is a result of tokenizing the input text.
+    """
     
     tokens = word_tokenize(text)
     lemmatizer = WordNetLemmatizer()
@@ -42,6 +59,11 @@ def tokenize(text):
 
 
 def build_model():
+    """
+    This function builds the ML model which will be used to train and predict the data.
+    Output:
+    - cv: ML model which will be used to train and predict the data
+    """
     
     pipeline = Pipeline([
         ('vect', CountVectorizer(tokenizer=tokenize)),
@@ -59,12 +81,27 @@ def build_model():
     return cv
 
 def evaluate_model(model, X_test, Y_test, category_names):
+    """
+    This function evaluates the model and prints the result for the same.
+    Input:
+    - model: ML model
+    - X_test: data containing the messages to test
+    - Y_test: data frame containing labeled results for the test data
+    - category_names: list of categories
+    """
     
     y_pred = model.predict(X_test)
     print(classification_report(Y_test, y_pred, target_names=category_names))
 
 
 def save_model(model, model_filepath):
+    """
+    This function saves the ml model on the given path.
+    Input:
+    - model: ML model
+    - model_filepath(String): location for saving the model
+    """
+    
     pickle.dump(model, open(model_filepath,'wb'))
 
 
