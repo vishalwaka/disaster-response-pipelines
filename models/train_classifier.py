@@ -1,24 +1,71 @@
 import sys
+import nltk
+nltk.download(['punkt', 'wordnet', 'averaged_perceptron_tagger'])
 
+# import libraries
+import pandas as pd
+from sqlalchemy import create_engine
+import pickle
+
+from nltk.tokenize import word_tokenize
+from nltk.stem import WordNetLemmatizer
+
+from sklearn.metrics import confusion_matrix, classification_report
+from sklearn.model_selection import GridSearchCV
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.pipeline import Pipeline
+from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
+from sklearn.multioutput import MultiOutputClassifier
 
 def load_data(database_filepath):
-    pass
-
+    
+    # load data from database
+    engine = create_engine('sqlite:///{}'.format(database_filepath))
+    df = pd.read_sql_table("MessageTable", engine)
+    df.related.replace(2,1,inplace=True)
+    X = df["message"]
+    y = df.drop(["message","id", "original", "genre"], axis = 1)
+    category_names = y.columns
+    return X, y, category_names
 
 def tokenize(text):
-    pass
+    
+    tokens = word_tokenize(text)
+    lemmatizer = WordNetLemmatizer()
+
+    clean_tokens = []
+    for tok in tokens:
+        clean_tok = lemmatizer.lemmatize(tok).lower().strip()
+        clean_tokens.append(clean_tok)
+    return clean_tokens   
 
 
 def build_model():
-    pass
+    
+    pipeline = Pipeline([
+        ('vect', CountVectorizer(tokenizer=tokenize)),
+        ('tfidf', TfidfTransformer()),
+        ('clf', MultiOutputClassifier(RandomForestClassifier(n_estimators = 50, min_samples_split = 2, n_jobs =1)))
+    ])
+    
+    parameters = {
+        'clf__estimator__n_estimators': [50],
+        'clf__estimator__min_samples_split' : [2],
+        'clf__estimator__n_jobs' : [1]
+    }
 
+    cv = GridSearchCV(pipeline, param_grid=parameters)
+    return cv
 
 def evaluate_model(model, X_test, Y_test, category_names):
-    pass
+    
+    y_pred = model.predict(X_test)
+    print(classification_report(Y_test, y_pred, target_names=category_names))
 
 
 def save_model(model, model_filepath):
-    pass
+    pickle.dump(model, open(model_filepath,'wb'))
 
 
 def main():
